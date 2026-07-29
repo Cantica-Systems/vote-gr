@@ -85,13 +85,8 @@ precinct it votes in, worked out ahead of time, and typing searches that list
 on your own device. Nothing is sent anywhere, so there is nothing for us or
 anyone else to receive, log, or hand over.
 
-That also means no third party can break it. On 2026-07-29 the City of Grand
-Rapids stopped its public geocoding service, which is what this used to call;
-anything depending on it stopped working that day. A bundled index cannot go
-down.
-
 What we cannot speak for, and would rather name than imply otherwise:
-votegr.cantica.dev is a live demo of the tool, hosted by Cloudflare, which
+votegr.cantica.dev is a live demo of the tool, hosted on Cloudflare and Github, which
 serves the files, keeps its own request logs, and adds a script of its own to
 the page. The city runs the address service and technically keeps the logs for
 the lookup. Neither is under our control.
@@ -224,7 +219,7 @@ Sources, all published by the City Clerk:
 - [Kent County's Grand Rapids listing](https://www.kentcountymi.gov/418/Grand-Rapids)
   is what it was cross-checked against.
 
-Clarifications from the City Clerk's office, confirmed by phone on 2026-07-27:
+Clarifications from the City Clerk's office, confirmed on 2026-07-27:
 
 - **Precinct 9.** The city directory and the county listing disagree on it. The
   city is correct.
@@ -241,7 +236,7 @@ Two more things that will bite you:
 
 ## Limits
 
-This is an estimate. Your precinct is legally set by the state voter file, not
+This tool is an estimate. Your precinct is legally set by the state voter file, not
 by a line on a map, and every result links there to confirm. Addresses within a
 few metres of a precinct line are genuinely ambiguous, and the page says so, as
 it does for an address that straddles a line or one it inferred from the
