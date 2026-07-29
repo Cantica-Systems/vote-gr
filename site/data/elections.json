@@ -1,0 +1,21 @@
+{
+  "provenance": {
+    "description": "Election days shown on the page, and the early voting window.",
+    "source": "State of Michigan, Bureau of Elections",
+    "source_url": "https://www.michigan.gov/sos/elections",
+    "how_to_update": "Add the next election when it is announced. The page shows the first date that has not passed and ignores the rest, so an old entry is harmless. If every date has passed the page shows no election at all, which is deliberate: nothing is better than a stale date.",
+    "fields": "date and name are required. early_voting_from and early_voting_to are optional; when present the page shows the window, and says it is open once the start date arrives."
+  },
+  "elections": [
+    {
+      "date": "2026-08-04",
+      "name": "Primary Election",
+      "early_voting_from": "2026-07-25",
+      "early_voting_to": "2026-08-02"
+    },
+    {
+      "date": "2026-11-03",
+      "name": "General Election"
+    }
+  ]
+}

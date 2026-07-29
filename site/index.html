@@ -1,0 +1,100 @@
+<!doctype html>
+<!--
+  Grand Rapids Precinct Lookup
+  Type an address, get the ward, the precinct, and where that precinct votes.
+
+  Demo:   https://votegr.cantica.dev
+  Source: https://github.com/Cantica-Systems/vote-gr
+  By Cantica Systems, https://cantica.dev
+
+  Copyright (c) 2026 Cantica Systems LLC. MIT licensed, see LICENSE in the
+  repository: free to copy, host, and change, including by a city or clerk's
+  office, provided this notice is kept. The data in data/ is not ours to
+  license: it is public record from the State of Michigan and the Grand Rapids
+  City Clerk, passed along as published.
+
+  Unofficial and offered with no guarantee of accuracy. Why this exists, where
+  the data comes from, how it is hosted, and how to keep it current are in the
+  README: https://github.com/Cantica-Systems/vote-gr
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grand Rapids Precinct Lookup</title>
+<script src="lookup.js" defer></script>
+<link rel="stylesheet" href="lookup.css">
+</head>
+<body>
+<main>
+  <h1>Grand Rapids Precinct Lookup</h1>
+  <p class="sub">Type your address to find your ward, your precinct, and where you vote.</p>
+
+  <p id="election" class="election" hidden></p>
+
+  <div class="combo">
+    <label for="addr">Street address</label>
+    <input id="addr" type="text" autocomplete="off" spellcheck="false"
+           role="combobox" aria-expanded="false" aria-autocomplete="list"
+           aria-controls="opts" placeholder="300 Monroe Ave NW">
+    <ul id="opts" role="listbox" aria-label="Address suggestions"></ul>
+  </div>
+
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+  <div id="result"></div>
+
+  <noscript>
+    <p class="status">This lookup needs JavaScript. The city publishes a
+      <a href="https://www.grandrapidsmi.gov/departments/clerks-office/elections/precinct-maps-and-polling-locations/">precinct directory</a>
+      you can read directly.</p>
+  </noscript>
+
+  <footer>
+    <p><strong>More help</strong><br>
+       <a href="https://mvic.sos.state.mi.us/Voter/Index#early-voting-search-section" rel="noopener">Find early voting sites (State of Michigan)</a><br>
+       <a href="https://www.grandrapidsmi.gov/departments/clerks-office/" rel="noopener">Grand Rapids City Clerk</a><br>
+       <a href="https://www.kentcountymi.gov/Departments/Elections/" rel="noopener">Kent County Elections</a></p>
+    <p>MIT licensed and free to copy, host, revise, or change:
+       <a href="https://github.com/Cantica-Systems/vote-gr" rel="noopener">github.com/Cantica-Systems/vote-gr</a><br>
+       Brought to you by
+       <a href="https://cantica.dev" rel="noopener">Cantica Systems</a>.</p>
+  </footer>
+
+  <details class="about">
+    <summary>Why this exists, and where the data comes from</summary>
+    <p>Your ward, precinct and voting location come from the state's voter file,
+       and the state's voter site is the only official way to see them. It
+       requires you to identify yourself in order to receive them, asking your
+       name, birth month and year, and registration ZIP, and the privacy notice
+       you must accept says the department "is subject to the Michigan Freedom
+       of Information Act (FOIA) ... and information such as a name or address
+       may be disclosed in response to a FOIA request". That notice does not
+       exempt the lookup, so the details you enter and the fact you looked up
+       your voting information could be subject to FOIA. It also answers about
+       you, not about an address. That is the gap this fills, by comparing an
+       address against the same published boundaries.</p>
+    <p><strong>This tool asks for no personal information.</strong> We never
+       receive your address: it goes from your browser to the City of Grand
+       Rapids GIS servers to become a map coordinate, and your own device works
+       out which precinct contains it. This page, votegr.cantica.dev, is a live
+       demo of the tool, hosted by Cloudflare, which serves the files, keeps its
+       own request logs, and adds a script of its own to the page; the city
+       technically keeps the logs for the address lookup. Neither is under our
+       control, and if you would rather none of it applied, the files are yours
+       to take, host, and redistribute.</p>
+    <p><span id="sources">Precinct boundaries come from the State of Michigan.
+       Polling places come from the City Clerk's precinct directory.</span>
+       Both are public records, passed along as published, and the clerk's
+       directory is checked against Kent County's listing.</p>
+  </details>
+
+  <p class="disclaimer"><strong>Unofficial tool. Not run by the city, county, or
+     state, and offered with no guarantee of accuracy.</strong> The
+     <a href="https://mvic.sos.state.mi.us/" rel="noopener">Michigan Voter
+     Information Center</a> is the official source. Always verify there, or with
+     the <a href="https://www.grandrapidsmi.gov/departments/clerks-office/"
+     rel="noopener">Grand Rapids City Clerk</a>, before you rely on this.</p>
+</main>
+
+</body>
+</html>

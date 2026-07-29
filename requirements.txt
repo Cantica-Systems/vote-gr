@@ -1,0 +1,4 @@
+# Only needed to refresh the precinct boundaries.
+# The site itself needs nothing installed.
+requests>=2.31
+shapely>=2.0
