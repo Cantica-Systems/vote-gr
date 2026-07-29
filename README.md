@@ -63,24 +63,32 @@ database, no account.
 site/index.html               the page
 site/lookup.css               styling
 site/lookup.js                the lookup itself
-site/data/precincts.geojson   the 59 precinct boundaries
+site/data/addresses.json      every city address and the precinct it votes in
 site/data/polling.json        the 59 polling places
 site/data/elections.json      election days and early voting windows
+site/data/precincts.geojson   the 59 precinct boundaries (a build input; the
+                              page does not load it)
 ```
 
-The **repository** adds the script that generated the boundary file, so the
-data is not just asserted but reproducible:
+The **repository** adds the scripts that generated those files, so the data is
+not just asserted but reproducible:
 
 ```
 refresh_precincts.py          regenerates precincts.geojson
-requirements.txt              what that script needs
+refresh_addresses.py          regenerates addresses.json from the above
+requirements.txt              what those scripts need
 ```
 
-Your address goes to the City of Grand Rapids GIS servers to become a map
-coordinate. Everything after that happens in your browser.
+**The address you type never leaves your browser.** There is no geocoder and
+no lookup service. `addresses.json` lists every address in the city with the
+precinct it votes in, worked out ahead of time, and typing searches that list
+on your own device. Nothing is sent anywhere, so there is nothing for us or
+anyone else to receive, log, or hand over.
 
-**We never receive your address.** It goes from your browser straight to the
-city, and the precinct is worked out on your device.
+That also means no third party can break it. On 2026-07-29 the City of Grand
+Rapids stopped its public geocoding service, which is what this used to call;
+anything depending on it stopped working that day. A bundled index cannot go
+down.
 
 What we cannot speak for, and would rather name than imply otherwise:
 votegr.cantica.dev is a live demo of the tool, hosted by Cloudflare, which
@@ -92,11 +100,7 @@ A copy you host yourself involves neither. The files are yours to take, host,
 and redistribute, which is the point of the licence below.
 
 Map links point at OpenStreetMap and are built from coordinates already in the
-data, so no third-party geocoder is involved and nothing loads until you click.
-Addresses are resolved by the city's own geocoder rather than a general one:
-it is authoritative for Grand Rapids, and it offsets a result a few metres onto
-the correct side of the street, which matters because precinct boundaries often
-run down the middle of streets.
+data, so nothing loads until you click.
 
 ## The data
 
@@ -128,6 +132,50 @@ more than 5 m from a precinct line.
 We use the state's boundaries rather than the city's because 86 pairs of the
 city's polygons overlap each other, which puts roughly 1 in 100 addresses in two
 precincts at once with no way to choose.
+
+### Addresses: generated
+
+`site/data/addresses.json` is what makes the lookup work without a geocoder.
+Every parcel address in the city, matched once to the precinct containing it:
+
+```json
+"LAFAYETTE AVE SE": [[16, "32", 60], [17, "32", 60], [24, "32", 60]]
+```
+
+That is house number, precinct, and how many metres the parcel sits from the
+precinct edge (capped at 60, since past that "not near a line" is all the page
+says). A fourth element appears where an address straddles a line and lists
+every precinct it touches, so the page can say it cannot tell rather than pick
+one. Three addresses in the city are like that today.
+
+Regenerate it, after `refresh_precincts.py`, since the precinct each parcel
+falls in is baked in here:
+
+```bash
+python3 refresh_addresses.py
+```
+
+It reads Kent County's public parcel layer:
+
+```
+https://gis.kentcountymi.gov/agisprod/rest/services/ParcelsWithCondos/FeatureServer/0
+filtered to: PROPADDRESSCITY='GRAND RAPIDS'
+```
+
+and refuses to write unless every one of the 59 precincts gains addresses and
+the total is plausible. The postal city reaches well past the city limits, so
+roughly a third of what it fetches falls outside and is dropped.
+
+**Only three things per address are published: the number, the precinct, and
+the distance to the edge.** Owner names, parcel ids and valuations are read
+from the source and thrown away. Do not add them. This file goes to browsers,
+and an address-to-owner index is not something a voting page should hand out.
+
+Coverage is parcels, so a brand new build or an address that never had its own
+parcel will be missing. Where a number is missing but the addresses either side
+of it on the same side of the street agree, the page says so and uses that;
+where they disagree, it says it cannot tell. It never extrapolates past the
+ends of a street.
 
 ### Election days: edited by hand
 
@@ -195,8 +243,11 @@ Two more things that will bite you:
 
 This is an estimate. Your precinct is legally set by the state voter file, not
 by a line on a map, and every result links there to confirm. Addresses within a
-few metres of a precinct line are genuinely ambiguous, and the page says so.
-Polling places change every election; the page names the directory in use.
+few metres of a precinct line are genuinely ambiguous, and the page says so, as
+it does for an address that straddles a line or one it inferred from the
+neighbours. Coverage is parcel addresses, so a new build may be missing
+entirely. Polling places change every election; the page names the directory
+in use.
 
 ## Official sources
 

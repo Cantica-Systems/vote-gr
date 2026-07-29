@@ -5,20 +5,22 @@
 (function () {
   "use strict";
 
-  const GEOCODER = "https://maps.grcity.us/arcgis/rest/services/Geocode/Transport_StreetCenterlines/GeocodeServer";
   const NEAR_M = 10;              // how close to a precinct line counts as "too close to be certain"
-  const M_PER_DEG_LAT = 111320;
-  const LNG_SCALE = Math.cos(42.96 * Math.PI / 180);   // longitude shrinks at this latitude
+  const MAX_SUGGESTIONS = 6;
 
   const $ = (id) => document.getElementById(id);
   const input = $("addr"), optionList = $("opts"), statusLine = $("status"), resultBox = $("result");
 
-  let precincts = [];   // [{ ward, precinct, polys }]
+  // The whole lookup is a dictionary hit against a file the page already
+  // downloaded. There is no geocoder and no request: the address you type is
+  // never sent anywhere, and a city or county server going down cannot stop
+  // this working. See refresh_addresses.py for how the index is built.
+  let streets = {};     // { "LAFAYETTE AVE SE": [[number, precinct, metresFromEdge, [rivals]?] ] }
+  let streetNames = []; // the keys, for matching what someone types
+  let wards = {};       // { "32": 2 }
   let polling = {};     // { "43": { name, address, lat, lng, ... } }
   let suggestions = [];
   let active = -1;      // highlighted suggestion, -1 for none
-  let debounce = null;
-  let latestQuery = 0;  // guards against a slow response overwriting a newer one
 
   // Build an element. Extra arguments become children; strings become text.
   const el = (tag, cls, ...children) => {
@@ -41,66 +43,77 @@
     return response.json();
   };
 
-  // ArcGIS reports its own failures as HTTP 200 with an error body, so a
-  // stopped service looks like a successful empty answer unless we check.
-  // Without this, "the city's server is down" reads to the user as "your
-  // address is wrong".
-  const arcgis = async (endpoint, params) => {
-    const data = await getJSON(`${GEOCODER}/${endpoint}?${new URLSearchParams(params)}`);
-    if (data && data.error) throw new Error(data.error.message || "geocoder error");
-    return data;
-  };
-
   // A map link built straight from coordinates, so no geocoding service is
   // involved and nothing loads until someone clicks it.
   const osmLink = (lat, lng) =>
     `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
 
-  // ---- geometry ---------------------------------------------------------
-  // Ray casting against the bundled boundaries. Nothing about the address
-  // leaves the browser at this stage; the lookup itself is entirely local.
+  // ---- matching what someone types against the index --------------------
 
-  const ringsOf = (geometry) =>
-    geometry.type === "Polygon" ? [geometry.coordinates] :
-    geometry.type === "MultiPolygon" ? geometry.coordinates : [];
-
-  function inRing(lng, lat, ring) {
-    let inside = false;
-    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i], [xj, yj] = ring[j];
-      if ((yi > lat) !== (yj > lat) && lng < (xj - xi) * (lat - yi) / (yj - yi) + xi) {
-        inside = !inside;
-      }
-    }
-    return inside;
+  // "1951 Lafayette Ave. SE" -> { number: 1951, rest: "LAFAYETTE AVE SE" }
+  function parseTyped(text) {
+    const clean = text.toUpperCase().replace(/[.,]/g, " ").replace(/\s+/g, " ").trim();
+    const match = clean.match(/^(\d+)\s*(.*)$/);
+    return match ? { number: Number(match[1]), rest: match[2] }
+                 : { number: null, rest: clean };
   }
 
-  // ring[0] is the outer boundary; any further rings are holes.
-  const inPolygon = (lng, lat, polygon) =>
-    inRing(lng, lat, polygon[0]) &&
-    !polygon.slice(1).some((hole) => inRing(lng, lat, hole));
-
-  const locate = (lng, lat) =>
-    precincts.find((p) => p.polys.some((poly) => inPolygon(lng, lat, poly)));
-
-  function metresToSegment(lng, lat, a, b) {
-    const x = (lng - a[0]) * LNG_SCALE, y = lat - a[1];
-    const dx = (b[0] - a[0]) * LNG_SCALE, dy = b[1] - a[1];
-    const len2 = dx * dx + dy * dy;
-    const t = len2 ? Math.max(0, Math.min(1, (x * dx + y * dy) / len2)) : 0;
-    return Math.hypot(x - t * dx, y - t * dy) * M_PER_DEG_LAT;
+  // Every typed word must begin a word of the street name, in order. So
+  // "lafayette se" finds "LAFAYETTE AVE SE" without the typist having to know
+  // we spell it AVE, while "se lafayette" does not match SEWARD.
+  function streetMatches(street, tokens) {
+    const words = street.split(" ");
+    let at = 0;
+    for (const token of tokens) {
+      while (at < words.length && !words[at].startsWith(token)) at++;
+      if (at >= words.length) return false;
+      at++;
+    }
+    return true;
   }
 
-  function metresToEdge(lng, lat, feature) {
-    let best = Infinity;
-    for (const poly of feature.polys) {
-      for (const ring of poly) {
-        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-          best = Math.min(best, metresToSegment(lng, lat, ring[j], ring[i]));
-        }
-      }
+  function matchingStreets(rest) {
+    const tokens = rest.split(" ").filter(Boolean);
+    if (!tokens.length) return [];
+    const hits = streetNames.filter((s) => streetMatches(s, tokens));
+    // A street whose first word is what they started typing comes first;
+    // after that, shorter names, which are the less surprising answer.
+    return hits.sort((a, b) => {
+      const lead = (s) => (s.startsWith(tokens[0]) ? 0 : 1);
+      return lead(a) - lead(b) || a.length - b.length || a.localeCompare(b);
+    });
+  }
+
+  // ---- resolving a house number on a street -----------------------------
+
+  // Addresses come from parcels, so a number can be missing: a new build, or
+  // something that never had its own parcel. Rather than guess, we answer
+  // only when the neighbours on the same side of the street agree, and say so
+  // when they do not. Same side matters because a precinct line often runs
+  // down the middle of a street, putting odd and even in different precincts.
+  function resolve(street, number) {
+    const rows = streets[street];
+    if (!rows) return null;
+
+    const exact = rows.find((r) => r[0] === number);
+    if (exact) {
+      return { precinct: exact[1], edgeMetres: exact[2], rivals: exact[3] || null,
+               inferred: false };
     }
-    return best;
+
+    const sameSide = rows.filter((r) => r[0] % 2 === number % 2);
+    let below = null, above = null;
+    for (const row of sameSide) {
+      if (row[0] < number) below = row;
+      else if (row[0] > number) { above = row; break; }
+    }
+    if (!below || !above) return null;          // outside the known range: do not extrapolate
+    if (below[1] !== above[1]) {
+      return { precinct: below[1], rivals: [below[1], above[1]], inferred: true,
+               edgeMetres: Infinity };
+    }
+    return { precinct: below[1], edgeMetres: Math.min(below[2], above[2]),
+             rivals: null, inferred: true };
   }
 
   // ---- rendering --------------------------------------------------------
@@ -140,14 +153,28 @@
     return parts;
   }
 
-  function render(feature, resolvedAddress, edgeMetres) {
+  function render(found, resolvedAddress) {
+    const { precinct, edgeMetres, rivals, inferred } = found;
     const body = el("div", "card-body",
       el("div", "lead", "For your address, ", el("span", "addr-quote", `“${resolvedAddress}”`), ","),
       el("div", "ward",
-        el("span", "wp-label", "Ward:"), el("span", "wp-value", String(feature.ward)),
-        el("span", "wp-label", "Precinct:"), el("span", "wp-value", String(feature.precinct))),
-      ...pollingPlace(feature.precinct, polling[String(feature.precinct)]),
-      edgeMetres <= NEAR_M ? advisory("boundary",
+        el("span", "wp-label", "Ward:"), el("span", "wp-value", String(wards[precinct])),
+        el("span", "wp-label", "Precinct:"), el("span", "wp-value", String(precinct))),
+      ...pollingPlace(precinct, polling[String(precinct)]),
+
+      // Said plainly rather than buried: an address that straddles a line, or
+      // that we only inferred from its neighbours, is a guess and should be
+      // checked. This is the whole reason the page exists, so it would be
+      // perverse to hide it.
+      rivals ? advisory("ambiguous",
+        `This address sits where precincts ${rivals.join(" and ")} meet, so we ` +
+        "cannot tell which one it votes in. Please check with the city clerk or " +
+        "the Michigan Voter Information Center.") : null,
+      !rivals && inferred ? advisory("inferred",
+        "We do not have this exact address, so this is taken from the addresses " +
+        "either side of it on the same side of the street. They agree, but it is " +
+        "worth confirming.") : null,
+      !rivals && edgeMetres <= NEAR_M ? advisory("boundary",
         `This address sits about ${Math.round(edgeMetres)} m from the edge of the ` +
         "precinct, which is too close to be certain. Please check with the city " +
         "clerk or the Michigan Voter Information Center.") : null);
@@ -156,18 +183,6 @@
     resultBox.append(el("div", "card", body));
   }
 
-  function outsideCity() {
-    const mvic = el("a", null, "Michigan Voter Information Center");
-    mvic.href = "https://mvic.sos.state.mi.us/";
-    mvic.rel = "noopener";
-    clearResult();
-    resultBox.append(el("div", "card",
-      el("div", "card-body",
-        el("div", "place", "That address is outside Grand Rapids city limits."),
-        el("div", "addr",
-          "Kent County lists polling places for other jurisdictions, and the ", mvic,
-          " covers the whole state."))));
-  }
 
   const failed = (message) => {
     clearResult();
@@ -196,53 +211,61 @@
     input.setAttribute("aria-expanded", suggestions.length ? "true" : "false");
   }
 
-  async function suggest(text) {
-    const mine = ++latestQuery;
-    try {
-      const data = await arcgis("suggest", { text, f: "json" });
-      if (mine !== latestQuery) return;
-      suggestions = (data.suggestions || []).slice(0, 6);
-      active = -1;
-      renderList();
-      say(suggestions.length ? ""
-        : "No address found. Try including the number and direction, like 300 Monroe Ave NW.");
-    } catch {
-      if (mine !== latestQuery) return;
-      closeList();
-      say("Could not reach the address service. You can read the city's precinct " +
-          "directory directly, or check the Michigan Voter Information Center.", true);
-    }
+  function suggest(text) {
+    const { number, rest } = parseTyped(text);
+    const matches = matchingStreets(rest);
+
+    // With a number, offer the full address, but only where we can actually
+    // answer it. Without one, offer street names to finish first.
+    suggestions = number === null
+      ? matches.slice(0, MAX_SUGGESTIONS).map((street) => ({ text: street, street }))
+      : matches.filter((street) => resolve(street, number))
+               .slice(0, MAX_SUGGESTIONS)
+               .map((street) => ({ text: `${number} ${street}`, street, number }));
+
+    active = -1;
+    renderList();
+    say(suggestions.length ? "" : notFoundHint(number, matches.length));
   }
 
-  async function choose(index) {
+  const notFoundHint = (number, streetHits) => {
+    if (number === null) return "No street found. Try the street name, like Monroe Ave NW.";
+    if (streetHits) return `We have no number ${number} on that street. Check the number, ` +
+                           "or look it up at the Michigan Voter Information Center.";
+    return "No address found. Try the number and the direction, like 300 Monroe Ave NW. " +
+           "Addresses outside the city are not listed here.";
+  };
+
+  function choose(index) {
     const picked = suggestions[index];
     if (!picked) return;
+
+    // A street on its own is half an address: put it in the box and wait.
+    if (picked.number == null) {
+      input.value = `${picked.street} `;
+      closeList();
+      say("Now add the house number.");
+      input.focus();
+      return;
+    }
+
     input.value = picked.text;
     closeList();
     clearResult();
-    say("Looking up your address...");
-    try {
-      const data = await arcgis("findAddressCandidates",
-        { magicKey: picked.magicKey, outSR: 4326, f: "json" });
-      const candidate = (data.candidates || [])[0];
-      if (!candidate) throw new Error("no candidates");
-      const { x: lng, y: lat } = candidate.location;
-      const feature = locate(lng, lat);
-      say("");
-      if (!feature) return outsideCity();
-      render(feature, candidate.address, metresToEdge(lng, lat, feature));
-    } catch {
-      failed("Could not look that address up.");
-    }
+    const found = resolve(picked.street, picked.number);
+    if (!found) return failed("We do not have that address.");
+    say("");
+    render(found, picked.text);
   }
 
+  // No debounce: the index is already in memory, so this is a dictionary
+  // lookup rather than a request, and waiting would only add lag.
   input.addEventListener("input", () => {
     const text = input.value.trim();
     clearResult();
     say("");
-    clearTimeout(debounce);
     if (text.length < 3) return closeList();
-    debounce = setTimeout(() => suggest(text), 220);
+    suggest(text);
   });
 
   input.addEventListener("keydown", (event) => {
@@ -310,28 +333,27 @@
     input.disabled = true;
     say("Loading...");
     try {
-      const [boundaries, places, calendar] = await Promise.all([
-        getJSON("data/precincts.geojson"),
+      const [addresses, places, calendar] = await Promise.all([
+        getJSON("data/addresses.json"),
         getJSON("data/polling.json"),
         getJSON("data/elections.json"),
       ]);
 
-      precincts = boundaries.features.map((f) => ({
-        ward: f.properties.ward,
-        precinct: f.properties.precinct,
-        polys: ringsOf(f.geometry),
-      }));
+      streets = addresses.streets;
+      streetNames = Object.keys(streets);
+      wards = addresses.wards;
       polling = places.precincts;
       showNextElection(calendar.elections);
 
       // Read the dates off the data itself. A hand-edited data file and a
       // hard-coded footer drift apart; this cannot.
-      const edited = (boundaries.provenance || {}).source_last_edited;
+      const generated = (addresses.provenance || {}).generated;
       const directory = (places.provenance || {}).source_document;
       const sources = $("sources");
       if (sources) {
         sources.textContent =
-          `Precinct boundaries from the State of Michigan${edited ? `, last updated ${edited}` : ""}.` +
+          "Precinct boundaries from the State of Michigan, matched to Kent County " +
+          `parcel addresses${generated ? ` on ${generated}` : ""}.` +
           ` Polling places from the ${directory || "City Clerk's precinct directory"}.`;
       }
 

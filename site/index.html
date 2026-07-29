@@ -10,8 +10,12 @@
   Copyright (c) 2026 Cantica Systems LLC. MIT licensed, see LICENSE in the
   repository: free to copy, host, and change, including by a city or clerk's
   office, provided this notice is kept. The data in data/ is not ours to
-  license: it is public record from the State of Michigan and the Grand Rapids
-  City Clerk, passed along as published.
+  license: it is public record from the State of Michigan, Kent County and the
+  Grand Rapids City Clerk, passed along as published.
+
+  The address you type never leaves the browser. There is no geocoder: data/
+  lists every city address with the precinct it votes in, and the search runs
+  against that locally.
 
   Unofficial and offered with no guarantee of accuracy. Why this exists, where
   the data comes from, how it is hosted, and how to keep it current are in the
@@ -73,15 +77,14 @@
        your voting information could be subject to FOIA. It also answers about
        you, not about an address. That is the gap this fills, by comparing an
        address against the same published boundaries.</p>
-    <p><strong>This tool asks for no personal information.</strong> We never
-       receive your address: it goes from your browser to the City of Grand
-       Rapids GIS servers to become a map coordinate, and your own device works
-       out which precinct contains it. This page, votegr.cantica.dev, is a live
-       demo of the tool, hosted by Cloudflare, which serves the files, keeps its
-       own request logs, and adds a script of its own to the page; the city
-       technically keeps the logs for the address lookup. Neither is under our
-       control, and if you would rather none of it applied, the files are yours
-       to take, host, and redistribute.</p>
+    <p><strong>The address you type never leaves your browser.</strong> There is
+       no geocoder and no lookup service: the page downloads a list of city
+       addresses and the precinct each one votes in, and the search runs against
+       that list on your own device. Nobody receives what you typed, including
+       us. This page, votegr.cantica.dev, is a live demo, hosted by Cloudflare,
+       which serves the files and keeps its own request logs as any host does.
+       That is not under our control, and if you would rather it did not apply,
+       the files are yours to take, host, and redistribute.</p>
     <p><span id="sources">Precinct boundaries come from the State of Michigan.
        Polling places come from the City Clerk's precinct directory.</span>
        Both are public records, passed along as published, and the clerk's
