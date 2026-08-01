@@ -44,29 +44,19 @@
     return response.json();
   };
 
-  // The looked-up address, remembered so the Directions links can prefill
-  // the starting point. Set by render(); every location row is rendered
-  // after a lookup, so it is always current when a link is built.
+  // Set by render(); the Directions links start the route here.
   let typedAddress = null;
 
-  // "977 WEALTHY ST SW, 49504" -> "977 WEALTHY ST SW, Grand Rapids, MI 49504".
-  // The data stores street + ZIP (one-city tool); OSM wants a full postal
-  // address to geocode.
+  // "977 WEALTHY ST SW, 49504" -> "977 WEALTHY ST SW, Grand Rapids, MI 49504"
   const fullAddress = (addr) => {
     const m = addr.match(/^(.*),\s*(\d{5})$/);
     return m ? `${m[1]}, Grand Rapids, MI ${m[2]}` : `${addr}, Grand Rapids, MI`;
   };
 
-  // A routing link, labelled Directions. Both ends are readable addresses
-  // rather than coordinates, so OSM's From and To boxes show the street
-  // names someone just read on this page; OSM geocodes both when its page
-  // opens (a plain street + ZIP in one city resolves dependably, and the
-  // trade against exact stored coordinates is legibility -- if a
-  // destination ever resolves wrong, flip that end back to place.lat,lng).
-  // A place with no address still links by its coordinates. Nothing loads
-  // until someone clicks, and clicking Directions is the one act that
-  // inherently shares a start point: the route cannot be drawn without
-  // telling the router where you are leaving from.
+  // Both ends are addresses, not coordinates, so OSM's From and To boxes
+  // read like the page the person just left. OSM geocodes them when its
+  // page opens; nothing loads until the click, and only the click shares
+  // the typed address. A place without an address links by coordinates.
   const osmLink = (place) => {
     const to = place.address
       ? `to=${encodeURIComponent(fullAddress(place.address))}`
@@ -169,15 +159,15 @@
 
   // An icon on its own says nothing to a screen reader, so the link is named
   // for the place it points at rather than left as "link".
-  const mapLink = (place, label) => {
+  const mapLink = (place) => {
     const link = el("a", "dir-btn");
     link.rel = "noopener";
     link.target = "_blank";
     link.href = osmLink(place);
-    link.title = `Directions to ${label}`;
+    link.title = `Directions to ${place.name}`;
     // The visible word is inside the accessible name, which is what keeps the
     // announced label and the printed label from disagreeing.
-    link.setAttribute("aria-label", `Directions to ${label}`);
+    link.setAttribute("aria-label", `Directions to ${place.name}`);
     link.append(directionsIcon(), el("span", "dir-label", "Directions"));
     return link;
   };
@@ -191,7 +181,7 @@
         el("div", "addr", place.address),
         place.entrance_note ? el("div", "note", place.entrance_note) : null));
     if (place.address || (place.lat != null && place.lng != null)) {
-      row.append(mapLink(place, place.name));
+      row.append(mapLink(place));
     }
     return row;
   }
@@ -252,7 +242,6 @@
     resultBox.append(el("div", "card", body));
   }
 
-
   const failed = (message) => {
     clearResult();
     say(`${message} You can read the city's precinct directory directly, or check the ` +
@@ -264,6 +253,7 @@
   function closeList() {
     optionList.textContent = "";
     input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
     active = -1;
   }
 
@@ -278,6 +268,9 @@
       optionList.append(option);
     });
     input.setAttribute("aria-expanded", suggestions.length ? "true" : "false");
+    // The ids exist for exactly this: tell assistive tech which option is lit.
+    if (active >= 0) input.setAttribute("aria-activedescendant", `opt-${active}`);
+    else input.removeAttribute("aria-activedescendant");
   }
 
   function suggest(text) {
@@ -444,11 +437,8 @@
     // wherever it appears on the card.
     for (const site of sites) parts.push(locationRow(site, "ev-site"));
 
-    // Hours last: where to go is the answer, when it is open is the detail that
-    // follows it, so the addresses are not held behind a table.
-    // Days and times as aligned rows rather than three sentences, with the row
-    // that applies today picked out, so nobody has to read all of them to find
-    // the one they need.
+    // Hours last, as aligned rows with today's picked out: where to go is
+    // the answer, when it is open is the detail that follows it.
     if ((hours || []).length) {
       const todayAbbr = open ? DAY_ABBR[new Date().getDay()] : null;
       const table = el("div", "ev-hours");
