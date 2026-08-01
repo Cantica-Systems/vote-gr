@@ -44,12 +44,25 @@
     return response.json();
   };
 
-  // A map link built straight from coordinates, so no geocoding service is
-  // involved and nothing loads until someone clicks it.
-  // Routing, not a dropped pin, because the link is labelled Directions. Still
-  // built from coordinates already in the data, so nothing loads until clicked.
-  const osmLink = (lat, lng) =>
-    `https://www.openstreetmap.org/directions?to=${lat},${lng}`;
+  // The looked-up address, remembered so the Directions links can prefill
+  // the starting point. Set by render(); every location row is rendered
+  // after a lookup, so it is always current when a link is built.
+  let typedAddress = null;
+
+  // A routing link, labelled Directions. The destination is coordinates
+  // already in the data; the start is the typed address with the city and
+  // state appended (the index stores street-only addresses, and this is a
+  // one-city tool). Nothing loads until someone clicks it, and clicking
+  // Directions is the one act that inherently shares a start point: the
+  // route cannot be drawn without telling the router where you are
+  // leaving from. OpenStreetMap geocodes the from text when its page
+  // opens; nothing here calls a geocoder.
+  const osmLink = (lat, lng) => {
+    const to = `to=${lat},${lng}`;
+    if (!typedAddress) return `https://www.openstreetmap.org/directions?${to}`;
+    const from = encodeURIComponent(`${typedAddress}, Grand Rapids, MI`);
+    return `https://www.openstreetmap.org/directions?from=${from}&${to}`;
+  };
 
   // ---- matching what someone types against the index --------------------
 
@@ -192,6 +205,7 @@
   }
 
   function render(found, resolvedAddress) {
+    typedAddress = resolvedAddress;   // Directions links start from here
     const { precinct, edgeMetres, rivals, inferred } = found;
     // True when any of the three uncertainty advisories below will fire.
     const uncertain = Boolean(rivals || inferred || edgeMetres <= NEAR_M);

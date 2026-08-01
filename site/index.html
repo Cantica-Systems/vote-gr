@@ -15,7 +15,8 @@
 
   The address you type never leaves the browser. There is no geocoder: data/
   lists every city address with the precinct it votes in, and the search runs
-  against that locally.
+  against that locally. (One user-initiated exception: the Directions links
+  open OpenStreetMap with the typed address as the route's starting point.)
 
   Unofficial and offered with no guarantee of accuracy. Why this exists, where
   the data comes from, how it is hosted, and how to keep it current are in the
@@ -65,7 +66,9 @@
        precinct, and where that precinct votes, plus the early voting sites
        while they are open. The address never leaves your browser: no
        third-party database or address search is involved, so nobody receives
-       what you typed.</p>
+       what you typed. The one exception is a link you choose to click: the
+       Directions button opens OpenStreetMap with your address as the starting
+       point, because a route cannot be drawn without one.</p>
     <p>Every answer is an estimate. I am fairly confident it is accurate in
        most cases, but your voter file is the source of truth, not a line on a
        map. Worst case you go to the wrong precinct by mistake, so plan ahead
