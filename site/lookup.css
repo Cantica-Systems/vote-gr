@@ -204,6 +204,13 @@ details.about p { margin: .7rem 0; font-size: .85rem; color: var(--dim); }
   letter-spacing: .04em;
 }
 .ev-block .lead-2 { margin-top: .5rem; }
+
+/* This one answers the warning above it rather than adding another, so it
+   takes the banner's blue rather than the warning amber. */
+.advisory[data-kind=early-voting] {
+  border-left-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
 .ev-hours { margin-top: .25rem; font-size: .88rem; color: var(--dim); }
 .ev-site { margin-top: 1rem; }
 .ev-site .place { font-size: 1rem; }

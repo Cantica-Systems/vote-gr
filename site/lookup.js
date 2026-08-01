@@ -330,7 +330,7 @@
       // The count, not the addresses. Addresses appear once an address has been
       // looked up, not to everyone who loads the page.
       const count = (next.early_voting_sites || []).length;
-      const where = count ? ` at ${count} site${count === 1 ? "" : "s"} across the city` : "";
+      const where = count ? `, at ${count} site${count === 1 ? "" : "s"} across the city` : "";
       banner.append(el("span", "ev", today >= from
         ? `Early voting is open now, through ${prettyDate(to)}${where}.`
         : `Early voting runs from ${prettyDate(from)} through ${prettyDate(to)}${where}.`));
