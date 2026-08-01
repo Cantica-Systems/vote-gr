@@ -1,10 +1,10 @@
 # Vote GR
 
-Type in a Grand Rapids address, get your ward, your precinct, and where you
-vote on Election Day. 
+Type in a Grand Rapids address, get your ward, your precinct, where you vote on
+Election Day, and the early voting sites while they are open.
 
-Live demo: **<https://votegr.cantica.dev>**
-Also served straight from this repository on **[GitHub](https://cantica-systems.github.io/vote-gr/)**
+Live demo: **<https://votegr.cantica.dev>**, also served straight from this
+repository on **[GitHub](https://cantica-systems.github.io/vote-gr/)**.
 
 This project is independent and unofficial, offered with no guarantee of accuracy.  
 This tool is not affiliated with the City of Grand Rapids, Kent County, or the State of
@@ -66,7 +66,7 @@ site/lookup.css               styling
 site/lookup.js                the lookup itself
 site/data/addresses.json      every city address and the precinct it votes in
 site/data/polling.json        the 59 polling places
-site/data/elections.json      election days and early voting windows
+site/data/elections.json      election days, early voting windows and sites
 site/data/precincts.geojson   the 59 precinct boundaries (a build input; the
                               page does not load it)
 ```
@@ -85,12 +85,6 @@ no lookup service. `addresses.json` lists every address in the city with the
 precinct it votes in, worked out ahead of time, and typing searches that list
 on your own device. Nothing is sent anywhere, so there is nothing for us or
 anyone else to receive, log, or hand over.
-
-What we cannot speak for, and would rather name than imply otherwise:
-votegr.cantica.dev is a live demo of the tool, hosted on Cloudflare and Github, which
-serves the files, keeps its own request logs, and adds a script of its own to
-the page. The city runs the address service and technically keeps the logs for
-the lookup. Neither is under our control.
 
 ## Data
 
@@ -129,14 +123,20 @@ precincts at once with no way to choose.
 Every parcel address in the city, matched once to the precinct containing it:
 
 ```json
-"LAFAYETTE AVE SE": [[16, "32", 60], [17, "32", 60], [24, "32", 60]]
+{
+  "wards":   { "32": 2 },
+  "streets": { "LAFAYETTE AVE SE": [[16, "32", 60], [17, "32", 60]] }
+}
 ```
 
-The three elements are the house number, precinct, and how many meters the parcel sits from the
-precinct edge (capped at 60, since past that "not near a line" is all the page
-says).  A fourth element appears where an address straddles a line and lists
-every precinct it touches, so the page can say it can't determine the location, rather than pick
-one. A few addresses in the city are like that today.
+`wards` maps each precinct to its ward. In `streets`, each row is the house
+number, the precinct, and how many meters the parcel sits from the precinct
+edge, capped at 60 since past that "not near a line" is all the page says.
+
+A fourth element appears where an address straddles a line, listing every
+precinct it touches so the page can say it cannot tell rather than pick one:
+`[1930, "16", 60, ["16", "26"]]`. A few addresses in the city are like that
+today.
 
 Refresh the address file after `refresh_precincts.py`, since the precinct each parcel it 
 falls in is baked in:
@@ -170,55 +170,63 @@ ends of a street.
 `site/data/elections.json` is the calendar the banner reads:
 
 ```json
-{ "date": "2026-08-04", "name": "Primary Election",
-  "early_voting_from": "2026-07-25", "early_voting_to": "2026-08-02" }
+{
+  "elections": [
+    { "date": "2026-08-04", "name": "Primary Election",
+      "early_voting_from": "2026-07-25", "early_voting_to": "2026-08-02",
+      "early_voting_hours": [
+        { "days": ["Mon", "Wed", "Fri", "Sat", "Sun"], "open": "9:00 AM", "close": "5:00 PM" },
+        { "days": ["Tue", "Thu"], "open": "11:00 AM", "close": "7:00 PM" }
+      ],
+      "early_voting_sites": [
+        { "name": "GRPS University",
+          "address": "1400 FULLER AVE NE, 49505",
+          "lat": 42.990162, "lng": -85.637624 }
+      ] }
+  ]
+}
 ```
 
-`date` and `name` are required; the early voting fields are optional. The page
-shows the first date that has not passed and ignores the rest, so an old entry
-is harmless. If every date has passed it shows no election at all, which is
-deliberate: nothing beats a stale date. Add the next one when it is announced.
+Only `date` and `name` are required. The page shows the first date that has not
+passed and ignores the rest, so an old entry is harmless. If every date has
+passed it shows no election at all, which is deliberate: nothing beats a stale
+date.
 
-An election may also carry early voting sites and the hours they keep:
-
-```json
-"early_voting_hours": [
-  { "days": ["Mon", "Wed", "Fri", "Sat", "Sun"], "open": "9:00 AM", "close": "5:00 PM" },
-  { "days": ["Tue", "Thu"], "open": "11:00 AM", "close": "7:00 PM" }
-],
-"early_voting_sites": [
-  { "name": "GRPS University",
-    "address": "1400 FULLER AVE NE, City of Grand Rapids, 49505",
-    "lat": 42.990162, "lng": -85.637624 }
-]
-```
-
-Hours are a weekday pattern, which is how the clerk publishes them, rather
-than a row per date. `lat`, `lng` and `entrance_note` are optional, as in
-`polling.json`; without coordinates the site simply shows no map link.
-
-Any registered Grand Rapids voter may use any early voting site, so these are
-not tied to a precinct. The banner names how many there are while the window
-is open, and the sites themselves appear once an address has been looked up.
-Leave the fields out and no sites are shown, which is what November carries
-until the clerk publishes its sites.
+Hours are a weekday pattern, which is how the clerk publishes them, rather than
+a row per date. Sites take the same optional `lat`, `lng` and `entrance_note`
+as `polling.json`. Any registered Grand Rapids voter may use any early voting
+site, so these are not tied to a precinct: the banner names how many there are
+while the window is open, and the sites themselves appear once an address has
+been looked up. Leave the fields out and no sites are shown, which is what
+November carries until the clerk publishes its sites.
 
 ### Polling places: edited by hand
 
 `site/data/polling.json` is a plain list of the 59 location entries:
 
 ```json
-"43": {
-  "name": "Our Savior Lutheran Church",
-  "address": "2900 BURTON ST SE, City of Grand Rapids, 49546",
-  "lat": 42.926,
-  "lng": -85.608
-  "note": "Optional Note"
+{
+  "precincts": {
+    "43": {
+      "name": "Our Savior Lutheran Church",
+      "address": "2900 BURTON ST SE, 49546",
+      "lat": 42.926, "lng": -85.608,
+      "entrance_note": "West Entrance"
+    }
+  }
 }
 ```
 
-`lat` and `lng` are optional and only used to place the map link. Leave them
-out of a row and everything still works; the link is simply not shown.  
+Keyed by precinct number, as a string. `name` and `address` are required.
+`lat` and `lng` only place the map link, so leaving them out costs the link and
+nothing else, and `entrance_note` prints under the address. A precinct voting
+somewhere else for one election adds `consolidated_with`, the precinct it is
+voting with, and `note` explaining why; the page then shows that other
+precinct's location with the note attached.
+
+Addresses are stored as street and ZIP, without the city. Every address in
+these files is in Grand Rapids, and nothing parses the string: map links come
+from `lat` and `lng`, so the address is only ever printed.
 
 Sources, all published by the City Clerk:
 
@@ -244,20 +252,17 @@ Clarifications from the City Clerk's office, confirmed on 2026-07-27 for the Aug
 - **Precinct 51.** Votes at precinct 45's location while Ken-O-Sha School is
   closed. Recorded with `consolidated_with` and `note` fields.
 
-Two more things that will bite you:
-
-- **Footnotes matter.** Consolidations like precinct 51 appear only in the
-  footnotes, so read them each time.
+One more thing that will bite you: **footnotes matter.** Consolidations like
+precinct 51 appear only in the footnotes, so read them each time.
 
 ## Limits
 
-This tool is an estimate. Your precinct is legally set by the state voter file, not
-by a line on a map, and every result links there to confirm. Addresses within a
-few metres of a precinct line are genuinely ambiguous, and the page says so, as
-it does for an address that straddles a line or one it inferred from the
-neighbours. Coverage is parcel addresses, so a new build may be missing
-entirely. Polling places change every election; the page names the directory
-in use.
+This tool is an estimate. Your precinct is legally set by the state voter file,
+not by a line on a map. Addresses within a few meters of a precinct line are
+genuinely ambiguous, and the page says so, as it does for an address that
+straddles a line or one it inferred from the neighbors. Coverage is parcel
+addresses, so a new build may be missing entirely. Polling places change every
+election; the page names the directory in use.
 
 ## Official sources
 
