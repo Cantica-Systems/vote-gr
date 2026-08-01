@@ -1,14 +1,14 @@
-# vote-gr
+# Vote GR
 
 Type in a Grand Rapids address, get your ward, your precinct, and where you
-vote.
+vote on Election Day. 
 
 Live demo: **<https://votegr.cantica.dev>**
 
-Independent and unofficial, offered with no guarantee of accuracy, and not
-affiliated with the City of Grand Rapids, Kent County, or the State of
-Michigan. The Michigan Voter Information Center is the official source; always
-verify there, or with the Grand Rapids City Clerk, before relying on this.
+This project is independent and unofficial, offered with no guarantee of accuracy.  
+This tool is not affiliated with the City of Grand Rapids, Kent County, or the State of
+Michigan. The Michigan Voter Information Center is still the official source of record; always
+verify there, or with the Clerk.  
 
 Free to copy, host, revise, and change, including by a city or clerk's office.
 You do not need to ask. The licence asks one thing in return: keep the
@@ -32,7 +32,7 @@ notice says:
 
 In fairness to the state, the same notice says your driver's license or Social
 Security number, day or month of birth, email, phone number, and decision to
-register will not be shared.
+register will not be shared, but that does not imply that your name or the fact you looked up the information, isn't.
 
 That the voter file is public record is by design, and not the concern here.
 The concern is what the notice does not exempt: the identifying details you
@@ -47,12 +47,12 @@ no plans for one of its own. The city's searchable polling map still carries
 2022 data from before the 74-to-59 precinct consolidation.
 
 **This tool asks for no personal information.** You type an address, your
-browser checks it against boundary files it already downloaded, and that is
-the end of it. There is nothing to agree to.
+browser checks it against boundary files it already downloaded, and that's 
+the end of it. 
 
 That matters if you are not registered, are checking for someone else, are
 considering an address you might move to, or would simply rather not hand over
-your details to find out where to vote.
+unnecessary details just to find out where to vote.
 
 ## What is here
 
@@ -91,18 +91,12 @@ serves the files, keeps its own request logs, and adds a script of its own to
 the page. The city runs the address service and technically keeps the logs for
 the lookup. Neither is under our control.
 
-A copy you host yourself involves neither. The files are yours to take, host,
-and redistribute, which is the point of the licence below.
-
-Map links point at OpenStreetMap and are built from coordinates already in the
-data, so nothing loads until you click.
-
-## The data
+## Data
 
 Each data file has a `provenance` block naming its source and how to update it.
 That block is the authority if this README drifts.
 
-### Boundaries: generated
+### Boundaries generated
 
 `site/data/precincts.geojson` comes from the State of Michigan's statewide
 voting precinct layer:
@@ -112,23 +106,23 @@ https://services3.arcgis.com/dxRQUfTDNtfqZ301/arcgis/rest/services/VotingPrecinc
 filtered to: CountyFIPS='081' AND MCDFIPS='34000'
 ```
 
-Regenerate it:
+Regenerate it with:
 
 ```bash
 pip install -r requirements.txt
 python3 refresh_precincts.py
 ```
 
-The script refuses to write unless the layer still returns 59 precincts,
+The script refuses to write unless the layer still returns exactly 59 precincts,
 numbered 1 to 59, in wards 1-20 / 21-40 / 41-59, with no overlapping shapes.
-Geometry is thinned to about a metre, which changes no answer for any address
+Geometry is thinned to about a meter, which changes no answer for any address
 more than 5 m from a precinct line.
 
 We use the state's boundaries rather than the city's because 86 pairs of the
 city's polygons overlap each other, which puts roughly 1 in 100 addresses in two
 precincts at once with no way to choose.
 
-### Addresses: generated
+### Addresses generated
 
 `site/data/addresses.json` is what makes the lookup work without a geocoder.
 Every parcel address in the city, matched once to the precinct containing it:
@@ -137,20 +131,19 @@ Every parcel address in the city, matched once to the precinct containing it:
 "LAFAYETTE AVE SE": [[16, "32", 60], [17, "32", 60], [24, "32", 60]]
 ```
 
-That is house number, precinct, and how many metres the parcel sits from the
+The three elements are the house number, precinct, and how many meters the parcel sits from the
 precinct edge (capped at 60, since past that "not near a line" is all the page
-says). A fourth element appears where an address straddles a line and lists
-every precinct it touches, so the page can say it cannot tell rather than pick
-one. Three addresses in the city are like that today.
+says).  A fourth element appears where an address straddles a line and lists
+every precinct it touches, so the page can say it can't determine the location, rather than pick
+one. A few addresses in the city are like that today.
 
-Regenerate it, after `refresh_precincts.py`, since the precinct each parcel
-falls in is baked in here:
+Refresh the address file after `refresh_precincts.py`, since the precinct each parcel it 
+falls in is baked in:
 
 ```bash
 python3 refresh_addresses.py
 ```
-
-It reads Kent County's public parcel layer:
+The script reads Kent County's public parcel layer:
 
 ```
 https://gis.kentcountymi.gov/agisprod/rest/services/ParcelsWithCondos/FeatureServer/0
@@ -162,8 +155,7 @@ the total is plausible. The postal city reaches well past the city limits, so
 roughly a third of what it fetches falls outside and is dropped.
 
 **Only three things per address are published: the number, the precinct, and
-the distance to the edge.** Owner names, parcel ids and valuations are read
-from the source and thrown away. Do not add them. This file goes to browsers,
+the distance to the edge.** This file goes to browsers,
 and an address-to-owner index is not something a voting page should hand out.
 
 Coverage is parcels, so a brand new build or an address that never had its own
@@ -172,7 +164,7 @@ of it on the same side of the street agree, the page says so and uses that;
 where they disagree, it says it cannot tell. It never extrapolates past the
 ends of a street.
 
-### Election days: edited by hand
+### Election days are defined by hand
 
 `site/data/elections.json` is the calendar the banner reads:
 
@@ -188,7 +180,7 @@ deliberate: nothing beats a stale date. Add the next one when it is announced.
 
 ### Polling places: edited by hand
 
-`site/data/polling.json` is a plain list of 59 entries:
+`site/data/polling.json` is a plain list of the 59 location entries:
 
 ```json
 "43": {
@@ -196,11 +188,12 @@ deliberate: nothing beats a stale date. Add the next one when it is announced.
   "address": "2900 BURTON ST SE, City of Grand Rapids, 49546",
   "lat": 42.926,
   "lng": -85.608
+  "note": "Optional Note"
 }
 ```
 
 `lat` and `lng` are optional and only used to place the map link. Leave them
-out of a row and everything still works; the link is simply not shown.
+out of a row and everything still works; the link is simply not shown.  
 
 Sources, all published by the City Clerk:
 
@@ -219,18 +212,15 @@ Sources, all published by the City Clerk:
 - [Kent County's Grand Rapids listing](https://www.kentcountymi.gov/418/Grand-Rapids)
   is what it was cross-checked against.
 
-Clarifications from the City Clerk's office, confirmed on 2026-07-27:
+Clarifications from the City Clerk's office, confirmed on 2026-07-27 for the August 2026 election:
 
-- **Precinct 9.** The city directory and the county listing disagree on it. The
-  city is correct.
-- **Precinct 51.** It votes at precinct 45's location while Ken-O-Sha School is
-  closed. Recorded with `consolidated_with` and `note`.
+- **Precinct 9.** The city directory and the county listing disagreed on the location. The
+  city's record was correct and Kent will update their listing. 
+- **Precinct 51.** Votes at precinct 45's location while Ken-O-Sha School is
+  closed. Recorded with `consolidated_with` and `note` fields.
 
 Two more things that will bite you:
 
-- **The PDF has typos.** It prints Madison as "Madion", Kalamazoo as "Kalamzoo",
-  and "LaGrave" where the city's address search wants "La Grave". Those break a
-  maps link, so addresses here are written as the city's search resolves them.
 - **Footnotes matter.** Consolidations like precinct 51 appear only in the
   footnotes, so read them each time.
 
