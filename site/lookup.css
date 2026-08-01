@@ -49,6 +49,8 @@ footer { color: var(--dim); }
 .sub, .addr, .note { font-size: .93rem; }
 .lead, .lead-2 { font-size: .95rem; }
 .sub { margin: 0 0 1.6rem; }
+/* The why-tagline sits directly under the title; tuck the how-to line close. */
+.sub.why { margin-bottom: .6rem; }
 label { display: block; margin-bottom: .35rem; font-size: .85rem; }
 
 .disclaimer {
