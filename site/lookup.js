@@ -49,16 +49,28 @@
   // after a lookup, so it is always current when a link is built.
   let typedAddress = null;
 
-  // A routing link, labelled Directions. The destination is coordinates
-  // already in the data; the start is the typed address with the city and
-  // state appended (the index stores street-only addresses, and this is a
-  // one-city tool). Nothing loads until someone clicks it, and clicking
-  // Directions is the one act that inherently shares a start point: the
-  // route cannot be drawn without telling the router where you are
-  // leaving from. OpenStreetMap geocodes the from text when its page
-  // opens; nothing here calls a geocoder.
-  const osmLink = (lat, lng) => {
-    const to = `to=${lat},${lng}`;
+  // "977 WEALTHY ST SW, 49504" -> "977 WEALTHY ST SW, Grand Rapids, MI 49504".
+  // The data stores street + ZIP (one-city tool); OSM wants a full postal
+  // address to geocode.
+  const fullAddress = (addr) => {
+    const m = addr.match(/^(.*),\s*(\d{5})$/);
+    return m ? `${m[1]}, Grand Rapids, MI ${m[2]}` : `${addr}, Grand Rapids, MI`;
+  };
+
+  // A routing link, labelled Directions. Both ends are readable addresses
+  // rather than coordinates, so OSM's From and To boxes show the street
+  // names someone just read on this page; OSM geocodes both when its page
+  // opens (a plain street + ZIP in one city resolves dependably, and the
+  // trade against exact stored coordinates is legibility -- if a
+  // destination ever resolves wrong, flip that end back to place.lat,lng).
+  // A place with no address still links by its coordinates. Nothing loads
+  // until someone clicks, and clicking Directions is the one act that
+  // inherently shares a start point: the route cannot be drawn without
+  // telling the router where you are leaving from.
+  const osmLink = (place) => {
+    const to = place.address
+      ? `to=${encodeURIComponent(fullAddress(place.address))}`
+      : `to=${place.lat},${place.lng}`;
     if (!typedAddress) return `https://www.openstreetmap.org/directions?${to}`;
     const from = encodeURIComponent(`${typedAddress}, Grand Rapids, MI`);
     return `https://www.openstreetmap.org/directions?from=${from}&${to}`;
@@ -157,11 +169,11 @@
 
   // An icon on its own says nothing to a screen reader, so the link is named
   // for the place it points at rather than left as "link".
-  const mapLink = (lat, lng, label) => {
+  const mapLink = (place, label) => {
     const link = el("a", "dir-btn");
     link.rel = "noopener";
     link.target = "_blank";
-    link.href = osmLink(lat, lng);
+    link.href = osmLink(place);
     link.title = `Directions to ${label}`;
     // The visible word is inside the accessible name, which is what keeps the
     // announced label and the printed label from disagreeing.
@@ -178,8 +190,8 @@
         el("div", "place", place.name),
         el("div", "addr", place.address),
         place.entrance_note ? el("div", "note", place.entrance_note) : null));
-    if (place.lat != null && place.lng != null) {
-      row.append(mapLink(place.lat, place.lng, place.name));
+    if (place.address || (place.lat != null && place.lng != null)) {
+      row.append(mapLink(place, place.name));
     }
     return row;
   }

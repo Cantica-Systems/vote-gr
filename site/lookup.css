@@ -45,6 +45,7 @@ h1 { margin: 0 0 .3rem; font-size: 1.4rem; letter-spacing: -.01em; }
 .note,
 label,
 footer { color: var(--dim); }
+.src-line { color: var(--dim); font-size: .93rem; margin: .9rem 0 0; }
 
 .sub, .addr, .note { font-size: .93rem; }
 .lead, .lead-2 { font-size: .95rem; }
