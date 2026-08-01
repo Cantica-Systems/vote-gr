@@ -342,9 +342,6 @@
     banner.hidden = false;
   }
 
-  const hoursFor = (hours, abbr) =>
-    (hours || []).find((rule) => (rule.days || []).includes(abbr)) || null;
-
   // Early voting, shown while the next election carries sites and the window
   // has not closed. Returns an empty array otherwise, so render can spread it
   // without a conditional. Once the window passes this goes quiet on its own,
@@ -373,16 +370,23 @@
     parts.push(el("div", "lead-2", open
       ? `Vote early, through ${prettyDate(to)}`
       : `Vote early, ${prettyDate(from)} through ${prettyDate(to)}`));
-    parts.push(el("div", "ev-hours",
+    parts.push(el("div", "ev-note",
       "Any Grand Rapids voter may use any of these, whatever precinct they are in."));
 
-    const todayRule = open ? hoursFor(hours, DAY_ABBR[new Date().getDay()]) : null;
-    if (todayRule) {
-      parts.push(el("div", "ev-hours", `Open today, ${todayRule.open} to ${todayRule.close}.`));
-    }
-    for (const rule of hours || []) {
-      parts.push(el("div", "ev-hours",
-        `${rule.days.join(", ")}: ${rule.open} to ${rule.close}.`));
+    // Days and times as aligned rows rather than three sentences, with the row
+    // that applies today picked out, so nobody has to read all of them to find
+    // the one they need.
+    if ((hours || []).length) {
+      const todayAbbr = open ? DAY_ABBR[new Date().getDay()] : null;
+      const table = el("div", "ev-hours");
+      for (const rule of hours) {
+        const isToday = todayAbbr !== null && (rule.days || []).includes(todayAbbr);
+        const mark = isToday ? " is-today" : "";
+        table.append(
+          el("span", `ev-day${mark}`, rule.days.join(", ") + (isToday ? " (today)" : "")),
+          el("span", `ev-time${mark}`, `${rule.open} to ${rule.close}`));
+      }
+      parts.push(table);
     }
 
     for (const site of sites) {
