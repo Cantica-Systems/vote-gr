@@ -4,6 +4,7 @@ Type in a Grand Rapids address, get your ward, your precinct, and where you
 vote on Election Day. 
 
 Live demo: **<https://votegr.cantica.dev>**
+Also served straight from this repository via GitHub Pages: **<https://cantica-systems.github.io/vote-gr/>**
 
 This project is independent and unofficial, offered with no guarantee of accuracy.  
 This tool is not affiliated with the City of Grand Rapids, Kent County, or the State of
