@@ -178,6 +178,30 @@ shows the first date that has not passed and ignores the rest, so an old entry
 is harmless. If every date has passed it shows no election at all, which is
 deliberate: nothing beats a stale date. Add the next one when it is announced.
 
+An election may also carry early voting sites and the hours they keep:
+
+```json
+"early_voting_hours": [
+  { "days": ["Mon", "Wed", "Fri", "Sat", "Sun"], "open": "9:00 AM", "close": "5:00 PM" },
+  { "days": ["Tue", "Thu"], "open": "11:00 AM", "close": "7:00 PM" }
+],
+"early_voting_sites": [
+  { "name": "GRPS University",
+    "address": "1400 FULLER AVE NE, City of Grand Rapids, 49505",
+    "lat": 42.990162, "lng": -85.637624 }
+]
+```
+
+Hours are a weekday pattern, which is how the clerk publishes them, rather
+than a row per date. `lat`, `lng` and `entrance_note` are optional, as in
+`polling.json`; without coordinates the site simply shows no map link.
+
+Any registered Grand Rapids voter may use any early voting site, so these are
+not tied to a precinct. The banner names how many there are while the window
+is open, and the sites themselves appear once an address has been looked up.
+Leave the fields out and no sites are shown, which is what November carries
+until the clerk publishes its sites.
+
 ### Polling places: edited by hand
 
 `site/data/polling.json` is a plain list of the 59 location entries:
@@ -236,7 +260,10 @@ in use.
 
 ## Official sources
 
-- [Find early voting sites (State of Michigan)](https://mvic.sos.state.mi.us/Voter/Index#early-voting-search-section)
+- [Find early voting sites (State of Michigan)](https://mvic.sos.state.mi.us/Voter/Index#early-voting-search-section),
+  which is where the sites in `elections.json` were read from
+- [Grand Rapids early voting](https://www.grandrapidsmi.gov/departments/clerks-office/elections/early-voting/),
+  the clerk's page, which is where the hours were read from
 - [Grand Rapids City Clerk](https://www.grandrapidsmi.gov/departments/clerks-office/)
 - [Kent County Elections](https://www.kentcountymi.gov/Departments/Elections/)
 
