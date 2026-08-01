@@ -196,7 +196,7 @@
     // True when any of the three uncertainty advisories below will fire.
     const uncertain = Boolean(rivals || inferred || edgeMetres <= NEAR_M);
     const body = el("div", "card-body",
-      el("div", "lead", "For your address, ", el("span", "addr-quote", resolvedAddress), ","),
+      el("div", "lead", "Address: ", el("span", "addr-quote", resolvedAddress)),
       el("div", "ward",
         el("span", "wp-label", "Ward:"), el("span", "wp-value", String(wards[precinct])),
         el("span", "wp-label", "Precinct:"), el("span", "wp-value", String(precinct))),
