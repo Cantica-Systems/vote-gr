@@ -125,13 +125,47 @@
     return node;
   };
 
-  const mapLink = (lat, lng) => {
-    const link = el("a", "btn", "See it on a map");
+  // Drawn inline rather than loaded, so it costs no request and there is no
+  // icon font to go missing. createElementNS matters here: createElement would
+  // make an unknown HTML element that silently never paints.
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const directionsIcon = () => {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");     // the link carries the label
+    svg.setAttribute("focusable", "false");
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", "M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z");
+    svg.append(path);
+    return svg;
+  };
+
+  // An icon on its own says nothing to a screen reader, so the link is named
+  // for the place it points at rather than left as "link".
+  const mapLink = (lat, lng, label) => {
+    const link = el("a", "dir-btn");
     link.rel = "noopener";
     link.target = "_blank";
     link.href = osmLink(lat, lng);
+    link.title = `Directions to ${label}`;
+    link.setAttribute("aria-label", `Directions to ${label}`);
+    link.append(directionsIcon());
     return link;
   };
+
+  // One location: the text on the left, directions on the right. Shared by the
+  // voting day location and the early voting sites so they cannot drift apart.
+  function locationRow(place, extraClass) {
+    const row = el("div", extraClass ? `loc ${extraClass}` : "loc",
+      el("div", "loc-text",
+        el("div", "place", place.name),
+        el("div", "addr", place.address),
+        place.entrance_note ? el("div", "note", place.entrance_note) : null));
+    if (place.lat != null && place.lng != null) {
+      row.append(mapLink(place.lat, place.lng, place.name));
+    }
+    return row;
+  }
 
   function pollingPlace(precinct, place) {
     if (!place) {
@@ -145,16 +179,13 @@
       el("div", "lead-2", election
         ? `Your voting day location, ${prettyDate(election.date)}`
         : "Your voting day location"),
-      el("div", "place", place.name),
-      el("div", "addr", place.address),
-      place.entrance_note ? el("div", "note", place.entrance_note) : null,
+      locationRow(place),
     ];
     if (place.consolidated_with) {
       parts.push(advisory("consolidated",
         `For this election, precinct ${precinct} votes at precinct ` +
         `${place.consolidated_with}'s location${place.note ? `. ${place.note}.` : "."}`));
     }
-    if (place.lat != null && place.lng != null) parts.push(mapLink(place.lat, place.lng));
     return parts;
   }
 
@@ -389,16 +420,9 @@
       parts.push(table);
     }
 
-    for (const site of sites) {
-      const row = el("div", "ev-site",
-        el("div", "place", site.name),
-        el("div", "addr", site.address),
-        site.entrance_note ? el("div", "note", site.entrance_note) : null);
-      // The same button the voting day location gets, so a site reads the same
-      // wherever it appears on the card.
-      if (site.lat != null && site.lng != null) row.append(mapLink(site.lat, site.lng));
-      parts.push(row);
-    }
+    // The same row the voting day location gets, so a site reads the same
+    // wherever it appears on the card.
+    for (const site of sites) parts.push(locationRow(site, "ev-site"));
 
     return [el("div", "ev-block", ...parts)];
   }

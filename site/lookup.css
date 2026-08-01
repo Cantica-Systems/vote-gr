@@ -129,7 +129,7 @@ li[role=option][aria-selected=true] { background: var(--line); }
 /* The voting day location is the answer to the question asked, so it carries
    the most weight on the card. The early voting sites below are alternatives
    and sit a step quieter. */
-.place { margin-top: .2rem; font-size: 1.15rem; font-weight: 700; color: var(--fg); }
+.place { font-size: 1.15rem; font-weight: 700; color: var(--fg); }
 .ev-site .place { font-size: 1rem; font-weight: 600; }
 .note { margin-top: .3rem; font-style: italic; }   /* entrance instructions */
 
@@ -153,18 +153,32 @@ li[role=option][aria-selected=true] { background: var(--line); }
 }
 .election .ev { display: block; margin-top: .2rem; color: var(--dim); font-size: .85rem; }
 
-a.btn {
-  display: inline-block;
-  margin-top: .6rem;
-  padding: .45rem .9rem;
-  font-size: .92rem;
-  font-weight: 550;
-  color: var(--bg);
-  background: var(--accent);
+/* A location: text on the left, directions on the right. */
+
+.loc {
+  display: flex;
+  align-items: flex-start;
+  gap: .9rem;
+  margin-top: .35rem;
+}
+.loc-text { flex: 1 1 auto; min-width: 0; }   /* min-width lets long names wrap */
+
+a.dir-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-left: auto;
+  color: var(--accent);
+  border: 1px solid var(--line);
   border-radius: .4rem;
   text-decoration: none;
 }
-a.btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+a.dir-btn:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+a.dir-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a.dir-btn svg { width: 1.15rem; height: 1.15rem; fill: currentColor; }
 
 /* Footer and the two expandable sections */
 
