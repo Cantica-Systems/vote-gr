@@ -19,6 +19,7 @@
   let streetNames = []; // the keys, for matching what someone types
   let wards = {};       // { "32": 2 }
   let polling = {};     // { "43": { name, address, lat, lng, ... } }
+  let election = null;  // the next election, or null once every date has passed
   let suggestions = [];
   let active = -1;      // highlighted suggestion, -1 for none
 
@@ -155,6 +156,8 @@
 
   function render(found, resolvedAddress) {
     const { precinct, edgeMetres, rivals, inferred } = found;
+    // True when any of the three uncertainty advisories below will fire.
+    const uncertain = Boolean(rivals || inferred || edgeMetres <= NEAR_M);
     const body = el("div", "card-body",
       el("div", "lead", "For your address, ", el("span", "addr-quote", `“${resolvedAddress}”`), ","),
       el("div", "ward",
@@ -177,7 +180,10 @@
       !rivals && edgeMetres <= NEAR_M ? advisory("boundary",
         `This address sits about ${Math.round(edgeMetres)} m from the edge of the ` +
         "precinct, which is too close to be certain. Please check with the city " +
-        "clerk or the Michigan Voter Information Center.") : null);
+        "clerk or the Michigan Voter Information Center.") : null,
+
+      // Last, so the advisories stay next to the precinct answer they qualify.
+      ...earlyVoting(uncertain));
 
     clearResult();
     resultBox.append(el("div", "card", body));
@@ -289,6 +295,9 @@
   // entry is harmless while a missing one simply shows nothing.
 
   const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  // The clerk publishes early voting hours as a weekday pattern rather than as
+  // dated rows, so hours are matched by weekday. Indexes line up with DAYS.
+  const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const MONTHS = ["January", "February", "March", "April", "May", "June",
                   "July", "August", "September", "October", "November", "December"];
 
@@ -304,21 +313,88 @@
     return `${DAYS[date.getDay()]}, ${MONTHS[m - 1]} ${d}, ${y}`;
   };
 
-  function showNextElection(elections) {
-    const banner = $("election");
+  const nextElection = (elections) => {
     const today = todayISO();
-    const next = (elections || []).find((e) => e.date >= today);
+    return (elections || []).find((e) => e.date >= today) || null;
+  };
+
+  function showNextElection(next) {
+    const banner = $("election");
     if (!banner || !next) return;
 
     banner.append("Next election: ", el("strong", null, `${next.name}, ${prettyDate(next.date)}`));
 
+    const today = todayISO();
     const { early_voting_from: from, early_voting_to: to } = next;
     if (from && to && today <= to) {
+      // The count, not the addresses. Addresses appear once an address has been
+      // looked up, not to everyone who loads the page.
+      const count = (next.early_voting_sites || []).length;
+      const where = count ? ` at ${count} site${count === 1 ? "" : "s"} across the city` : "";
       banner.append(el("span", "ev", today >= from
-        ? `Early voting is open now, through ${prettyDate(to)}.`
-        : `Early voting runs from ${prettyDate(from)} through ${prettyDate(to)}.`));
+        ? `Early voting is open now, through ${prettyDate(to)}${where}.`
+        : `Early voting runs from ${prettyDate(from)} through ${prettyDate(to)}${where}.`));
     }
     banner.hidden = false;
+  }
+
+  const hoursFor = (hours, abbr) =>
+    (hours || []).find((rule) => (rule.days || []).includes(abbr)) || null;
+
+  // Early voting, shown while the next election carries sites and the window
+  // has not closed. Returns an empty array otherwise, so render can spread it
+  // without a conditional. Once the window passes this goes quiet on its own,
+  // with no edit to make and nothing to remember.
+  function earlyVoting(uncertain) {
+    if (!election) return [];
+    const { early_voting_from: from, early_voting_to: to,
+            early_voting_sites: sites, early_voting_hours: hours } = election;
+    if (!from || !to || !(sites || []).length) return [];
+
+    const today = todayISO();
+    if (today > to) return [];
+    const open = today >= from;
+
+    const parts = [el("div", "ev-head", "Vote early")];
+
+    // Said first, because for an address we could not place with certainty this
+    // is the answer: every site holds the voter's registration, so which
+    // precinct wins stops mattering.
+    if (uncertain) {
+      parts.push(advisory("early-voting",
+        "Vote early and verify there. All early voting locations have your information."));
+    }
+
+    parts.push(el("div", "lead-2", (open
+      ? `Early voting is open through ${prettyDate(to)}. `
+      : `Early voting runs from ${prettyDate(from)} through ${prettyDate(to)}. `) +
+      "Any Grand Rapids voter may use any of these, whatever precinct they are in."));
+
+    const todayRule = open ? hoursFor(hours, DAY_ABBR[new Date().getDay()]) : null;
+    if (todayRule) {
+      parts.push(el("div", "ev-hours", `Open today, ${todayRule.open} to ${todayRule.close}.`));
+    }
+    for (const rule of hours || []) {
+      parts.push(el("div", "ev-hours",
+        `${rule.days.join(", ")}: ${rule.open} to ${rule.close}.`));
+    }
+
+    for (const site of sites) {
+      const row = el("div", "ev-site",
+        el("div", "place", site.name),
+        el("div", "addr", site.address),
+        site.entrance_note ? el("div", "note", site.entrance_note) : null);
+      if (site.lat != null && site.lng != null) {
+        const link = el("a", "ev-map", "See it on a map");
+        link.rel = "noopener";
+        link.target = "_blank";
+        link.href = osmLink(site.lat, site.lng);
+        row.append(link);
+      }
+      parts.push(row);
+    }
+
+    return [el("div", "ev-block", ...parts)];
   }
 
   // ---- clicks outside the suggestion list close it ------------------------
@@ -343,7 +419,8 @@
       streetNames = Object.keys(streets);
       wards = addresses.wards;
       polling = places.precincts;
-      showNextElection(calendar.elections);
+      election = nextElection(calendar.elections);
+      showNextElection(election);
 
       // Read the dates off the data itself. A hand-edited data file and a
       // hard-coded footer drift apart; this cannot.

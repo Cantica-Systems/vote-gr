@@ -189,3 +189,28 @@ details.about p { margin: .7rem 0; font-size: .85rem; color: var(--dim); }
 
 .status { margin-top: 1rem; font-size: .92rem; color: var(--dim); }
 .status.err { padding-left: .75rem; border-left: 3px solid var(--warn); }
+
+/* Early voting block, appended to the result card */
+
+.ev-block {
+  margin-top: 1.5rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--line);
+}
+.ev-head {
+  font-size: .85rem;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.ev-block .lead-2 { margin-top: .5rem; }
+.ev-hours { margin-top: .25rem; font-size: .88rem; color: var(--dim); }
+.ev-site { margin-top: 1rem; }
+.ev-site .place { font-size: 1rem; }
+
+a.ev-map {
+  display: inline-block;
+  margin-top: .3rem;
+  font-size: .87rem;
+  color: var(--accent);
+}
