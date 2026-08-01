@@ -88,8 +88,10 @@ anyone else to receive, log, or hand over.
 
 ## Data
 
-Each data file has a `provenance` block naming its source and how to update it.
-That block is the authority if this README drifts.
+Open any file in `site/data/` and the first thing in it is a `provenance`
+entry: a few lines, inside the file itself, saying where its contents came
+from, when they were generated, and how to refresh them. If this README and a
+file's provenance entry ever disagree, believe the file.
 
 ### Boundaries generated
 
@@ -138,8 +140,8 @@ precinct it touches so the page can say it cannot tell rather than pick one:
 `[1930, "16", 60, ["16", "26"]]`. A few addresses in the city are like that
 today.
 
-Refresh the address file after `refresh_precincts.py`, since the precinct each parcel it 
-falls in is baked in:
+Refresh the address file after `refresh_precincts.py`, since each address's
+precinct is baked in at generation time:
 
 ```bash
 python3 refresh_addresses.py
