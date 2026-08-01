@@ -88,11 +88,6 @@ anyone else to receive, log, or hand over.
 
 ## Data
 
-Open any file in `site/data/` and the first thing in it is a `provenance`
-entry: a few lines, inside the file itself, saying where its contents came
-from, when they were generated, and how to refresh them. If this README and a
-file's provenance entry ever disagree, believe the file.
-
 ### Boundaries generated
 
 `site/data/precincts.geojson` comes from the State of Michigan's statewide
