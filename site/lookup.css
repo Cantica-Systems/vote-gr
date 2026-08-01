@@ -166,10 +166,11 @@ li[role=option][aria-selected=true] { background: var(--line); }
 a.dir-btn {
   flex: 0 0 auto;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  gap: .15rem;
+  padding: .45rem .55rem;
   margin-left: auto;
   color: var(--accent);
   border: 1px solid var(--line);
@@ -179,6 +180,7 @@ a.dir-btn {
 a.dir-btn:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
 a.dir-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 a.dir-btn svg { width: 1.15rem; height: 1.15rem; fill: currentColor; }
+.dir-label { font-size: .68rem; letter-spacing: .02em; line-height: 1; }
 
 /* Footer and the two expandable sections */
 
@@ -205,16 +207,33 @@ details.about summary::before { content: "+ "; }
 details.about[open] summary::before { content: "- "; }
 details.about p { margin: .7rem 0; font-size: .85rem; color: var(--dim); }
 
+/* FAQ question headings: full strength against the dimmed answers, so the
+   questions are what you scan and the answers are what you read. */
+details.about h3 {
+  margin: 1.6rem 0 .5rem;
+  font-size: .95rem;
+  font-weight: 650;
+  color: var(--fg);
+}
+details.about h3:first-of-type { margin-top: 1.1rem; }
+
 .status { margin-top: 1rem; font-size: .92rem; color: var(--dim); }
 .status.err { padding-left: .75rem; border-left: 3px solid var(--warn); }
 
 /* Early voting block, appended to the result card */
 
+/* Raised as one section, so early voting reads as a different kind of thing
+   from the voting day answer above it. The tint is the same accent the
+   election banner uses, so the blue means one thing across the page. */
 .ev-block {
   margin-top: 1.5rem;
-  padding-top: 1.15rem;
-  border-top: 1px solid var(--line);
+  padding: 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
 }
+.lead-2 .when { color: var(--fg); font-weight: 650; }
 .ev-block .lead-2 { margin-top: 0; }
 /* Only when the uncertainty note is above it, so it does not sit flush on the box. */
 .ev-block .advisory + .lead-2 { margin-top: 1rem; }
@@ -233,7 +252,7 @@ details.about p { margin: .7rem 0; font-size: .85rem; color: var(--dim); }
   display: grid;
   grid-template-columns: auto 1fr;
   gap: .25rem 1.1rem;
-  margin-top: .7rem;
+  margin-top: 1.3rem;   /* now sits below the addresses, not above them */
   font-size: .88rem;
   color: var(--dim);
 }

@@ -46,8 +46,10 @@
 
   // A map link built straight from coordinates, so no geocoding service is
   // involved and nothing loads until someone clicks it.
+  // Routing, not a dropped pin, because the link is labelled Directions. Still
+  // built from coordinates already in the data, so nothing loads until clicked.
   const osmLink = (lat, lng) =>
-    `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=18/${lat}/${lng}`;
+    `https://www.openstreetmap.org/directions?to=${lat},${lng}`;
 
   // ---- matching what someone types against the index --------------------
 
@@ -148,8 +150,10 @@
     link.target = "_blank";
     link.href = osmLink(lat, lng);
     link.title = `Directions to ${label}`;
+    // The visible word is inside the accessible name, which is what keeps the
+    // announced label and the printed label from disagreeing.
     link.setAttribute("aria-label", `Directions to ${label}`);
-    link.append(directionsIcon());
+    link.append(directionsIcon(), el("span", "dir-label", "Directions"));
     return link;
   };
 
@@ -174,11 +178,9 @@
         "Please check the Michigan Voter Information Center.")];
     }
     const parts = [
-      // Named with the date, so the voting day location and the early voting
-      // sites below it each say plainly which day they are for.
-      el("div", "lead-2", election
-        ? `Your voting day location, ${prettyDate(election.date)}`
-        : "Your voting day location"),
+      // No date here: the banner above already names the election and its day,
+      // and saying it twice on one screen reads as two different facts.
+      el("div", "lead-2", "Your voting day location"),
       locationRow(place),
     ];
     if (place.consolidated_with) {
@@ -194,7 +196,7 @@
     // True when any of the three uncertainty advisories below will fire.
     const uncertain = Boolean(rivals || inferred || edgeMetres <= NEAR_M);
     const body = el("div", "card-body",
-      el("div", "lead", "For your address, ", el("span", "addr-quote", `“${resolvedAddress}”`), ","),
+      el("div", "lead", "For your address, ", el("span", "addr-quote", resolvedAddress), ","),
       el("div", "ward",
         el("span", "wp-label", "Ward:"), el("span", "wp-value", String(wards[precinct])),
         el("span", "wp-label", "Precinct:"), el("span", "wp-value", String(precinct))),
@@ -342,10 +344,17 @@
            `-${String(now.getDate()).padStart(2, "0")}`;
   };
 
+  // "2026-07-29" -> "July 29, 2026". Falls back to whatever it was handed, since
+  // this also formats a date read out of a data file rather than written here.
+  const prettyMonthDay = (iso) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+    return match ? `${MONTHS[Number(match[2]) - 1]} ${Number(match[3])}, ${match[1]}` : iso;
+  };
+
+  // With the weekday, for the dates a voter has to act on.
   const prettyDate = (iso) => {
     const [y, m, d] = iso.split("-").map(Number);
-    const date = new Date(y, m - 1, d);
-    return `${DAYS[date.getDay()]}, ${MONTHS[m - 1]} ${d}, ${y}`;
+    return `${DAYS[new Date(y, m - 1, d).getDay()]}, ${prettyMonthDay(iso)}`;
   };
 
   const nextElection = (elections) => {
@@ -397,13 +406,20 @@
         "Vote early and verify there. All early voting locations have your information."));
     }
 
-    // Same shape as the voting day heading above it: what it is, then when.
-    parts.push(el("div", "lead-2", open
-      ? `Vote early, through ${prettyDate(to)}`
-      : `Vote early, ${prettyDate(from)} through ${prettyDate(to)}`));
+    // The date carries the weight here, so it is the part set in bold.
+    parts.push(open
+      ? el("div", "lead-2", "Vote early, through ", el("strong", "when", prettyDate(to)))
+      : el("div", "lead-2", "Vote early, ", el("strong", "when", prettyDate(from)),
+           " through ", el("strong", "when", prettyDate(to))));
     parts.push(el("div", "ev-note",
       "Any Grand Rapids voter may use any of these, whatever precinct they are in."));
 
+    // The same row the voting day location gets, so a site reads the same
+    // wherever it appears on the card.
+    for (const site of sites) parts.push(locationRow(site, "ev-site"));
+
+    // Hours last: where to go is the answer, when it is open is the detail that
+    // follows it, so the addresses are not held behind a table.
     // Days and times as aligned rows rather than three sentences, with the row
     // that applies today picked out, so nobody has to read all of them to find
     // the one they need.
@@ -419,10 +435,6 @@
       }
       parts.push(table);
     }
-
-    // The same row the voting day location gets, so a site reads the same
-    // wherever it appears on the card.
-    for (const site of sites) parts.push(locationRow(site, "ev-site"));
 
     return [el("div", "ev-block", ...parts)];
   }
@@ -460,7 +472,7 @@
       if (sources) {
         sources.textContent =
           "Precinct boundaries from the State of Michigan, matched to Kent County " +
-          `parcel addresses${generated ? ` on ${generated}` : ""}.` +
+          `parcel addresses${generated ? ` on ${prettyMonthDay(generated)}` : ""}.` +
           ` Polling places from the ${directory || "City Clerk's precinct directory"}.`;
       }
 
