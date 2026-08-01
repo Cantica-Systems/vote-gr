@@ -52,14 +52,14 @@ footer { color: var(--dim); }
 label { display: block; margin-bottom: .35rem; font-size: .85rem; }
 
 .disclaimer {
-  margin: 2rem 0 0;
-  padding: .7rem .85rem;
-  font-size: .87rem;
+  margin: 1.6rem 0 0;
+  padding: .5rem .7rem;
+  font-size: .82rem;
+  color: var(--dim);
   border: 1px solid var(--warn);
   border-radius: .4rem;
   background: color-mix(in srgb, var(--warn) 8%, transparent);
 }
-.disclaimer strong { display: block; margin-bottom: .2rem; }
 .disclaimer a { color: var(--accent); }
 
 /* Search box and its suggestion list */
@@ -122,8 +122,8 @@ li[role=option][aria-selected=true] { background: var(--line); }
   gap: .5rem 1.4rem;
   margin-top: .6rem;
 }
-.wp-label { font-size: .85rem; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
-.wp-value { margin-right: .6rem; font-size: 1.6rem; font-weight: 650; line-height: 1; }
+.wp-label { font-size: .85rem; color: var(--dim); }
+.wp-value { margin-right: .6rem; font-size: 1.15rem; font-weight: 600; line-height: 1.3; }
 
 .lead-2 { margin-top: 1.2rem; }
 .place { margin-top: .2rem; font-size: 1.05rem; font-weight: 550; color: var(--fg); }
@@ -151,8 +151,8 @@ li[role=option][aria-selected=true] { background: var(--line); }
 
 a.btn {
   display: inline-block;
-  margin-top: 1rem;
-  padding: .55rem 1rem;
+  margin-top: .6rem;
+  padding: .45rem .9rem;
   font-size: .92rem;
   font-weight: 550;
   color: var(--bg);
@@ -197,13 +197,9 @@ details.about p { margin: .7rem 0; font-size: .85rem; color: var(--dim); }
   padding-top: 1.15rem;
   border-top: 1px solid var(--line);
 }
-.ev-head {
-  font-size: .85rem;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-}
-.ev-block .lead-2 { margin-top: .5rem; }
+.ev-block .lead-2 { margin-top: 0; }
+/* Only when the uncertainty note is above it, so it does not sit flush on the box. */
+.ev-block .advisory + .lead-2 { margin-top: 1rem; }
 
 /* This one answers the warning above it rather than adding another, so it
    takes the banner's blue rather than the warning amber. */
@@ -212,12 +208,4 @@ details.about p { margin: .7rem 0; font-size: .85rem; color: var(--dim); }
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .ev-hours { margin-top: .25rem; font-size: .88rem; color: var(--dim); }
-.ev-site { margin-top: 1rem; }
-.ev-site .place { font-size: 1rem; }
-
-a.ev-map {
-  display: inline-block;
-  margin-top: .3rem;
-  font-size: .87rem;
-  color: var(--accent);
-}
+.ev-site { margin-top: 1.2rem; }

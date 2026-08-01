@@ -140,7 +140,11 @@
         "Please check the Michigan Voter Information Center.")];
     }
     const parts = [
-      el("div", "lead-2", "Your voting day location is at"),
+      // Named with the date, so the voting day location and the early voting
+      // sites below it each say plainly which day they are for.
+      el("div", "lead-2", election
+        ? `Your voting day location, ${prettyDate(election.date)}`
+        : "Your voting day location"),
       el("div", "place", place.name),
       el("div", "addr", place.address),
       place.entrance_note ? el("div", "note", place.entrance_note) : null,
@@ -355,7 +359,7 @@
     if (today > to) return [];
     const open = today >= from;
 
-    const parts = [el("div", "ev-head", "Vote early")];
+    const parts = [];
 
     // Said first, because for an address we could not place with certainty this
     // is the answer: every site holds the voter's registration, so which
@@ -365,9 +369,11 @@
         "Vote early and verify there. All early voting locations have your information."));
     }
 
-    parts.push(el("div", "lead-2", (open
-      ? `Early voting is open through ${prettyDate(to)}. `
-      : `Early voting runs from ${prettyDate(from)} through ${prettyDate(to)}. `) +
+    // Same shape as the voting day heading above it: what it is, then when.
+    parts.push(el("div", "lead-2", open
+      ? `Vote early, through ${prettyDate(to)}`
+      : `Vote early, ${prettyDate(from)} through ${prettyDate(to)}`));
+    parts.push(el("div", "ev-hours",
       "Any Grand Rapids voter may use any of these, whatever precinct they are in."));
 
     const todayRule = open ? hoursFor(hours, DAY_ABBR[new Date().getDay()]) : null;
@@ -384,13 +390,9 @@
         el("div", "place", site.name),
         el("div", "addr", site.address),
         site.entrance_note ? el("div", "note", site.entrance_note) : null);
-      if (site.lat != null && site.lng != null) {
-        const link = el("a", "ev-map", "See it on a map");
-        link.rel = "noopener";
-        link.target = "_blank";
-        link.href = osmLink(site.lat, site.lng);
-        row.append(link);
-      }
+      // The same button the voting day location gets, so a site reads the same
+      // wherever it appears on the card.
+      if (site.lat != null && site.lng != null) row.append(mapLink(site.lat, site.lng));
       parts.push(row);
     }
 
