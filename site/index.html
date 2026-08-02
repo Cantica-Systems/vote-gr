@@ -36,8 +36,9 @@
   <p class="sub why">Why does the State of Michigan make you hand over your personal
      info just to find out where to vote? That seemed unnecessary, so I built
      an alternative.</p>
-  <p class="sub">Type your address to find your ward, your precinct, and where to vote,
-     without your query leaving your web browser.</p>
+  <p class="sub">Type your address to find your ward, your precinct, and where to vote.
+     The lookup is done client side in your browser, without querying any server
+     to retrieve the information.</p>
 
   <p id="election" class="election" hidden></p>
 
@@ -64,9 +65,12 @@
     <h3>What does this do?</h3>
     <p>You type a Grand Rapids address and it gives you your ward, your
        precinct, and where that precinct votes, plus the early voting sites
-       while they are open. The address never leaves your browser: no
-       third-party database or address search is involved, so nobody receives
-       what you typed.</p>
+       while they are open.</p>
+    <p><strong>The lookup is done client side, so no third-party database or
+       address search is involved and no server is queried to answer it.</strong>
+       The one exception is your own click: choosing Directions opens
+       OpenStreetMap with your address as the route's starting point. Nothing is
+       sent unless you click.</p>
     <p>Every answer is an estimate. I am fairly confident it is accurate in
        most cases, but your voter file is the source of truth, not a line on a
        map. Worst case you go to the wrong precinct by mistake, so plan ahead
